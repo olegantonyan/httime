@@ -24,24 +24,26 @@ class Server
 
   def self.run(host = 'localhost', port = 3003)
     server = TCPServer.new(host, port)
-    while (connection = server.accept)
-      response = ''
-      begin
-        request = connection.gets
-        result = handle(request.split(' ')[1])
-        response += "HTTP/1.1 200/OK\r\nContent-type:text/plain\r\n\r\n"
-        response += result
-      rescue NotFoundError => e
-        error = "error: #{e}"
-        STDERR.puts(error)
-        response = "HTTP/1.1 404 Not Found\r\n\r\n#{error}\r\n"
-      rescue => e
-        error = "error: #{e}"
-        STDERR.puts(error)
-        response = "HTTP/1.1 500 Internal Error\r\n\r\n#{error}\r\n"
-      ensure
-        connection.print(response)
-        connection.close
+    loop do
+      Thread.start(server.accept) do |connection|
+        response = ''
+        begin
+          request = connection.gets
+          result = handle(request.split(' ')[1])
+          response += "HTTP/1.1 200/OK\r\nContent-type:text/plain\r\n\r\n"
+          response += result
+        rescue NotFoundError => e
+          error = "error: #{e}"
+          STDERR.puts(error)
+          response = "HTTP/1.1 404 Not Found\r\n\r\n#{error}\r\n"
+        rescue => e
+          error = "error: #{e}"
+          STDERR.puts(error)
+          response = "HTTP/1.1 500 Internal Error\r\n\r\n#{error}\r\n"
+        ensure
+          connection.print(response)
+          connection.close
+        end
       end
     end
   end
